@@ -25,7 +25,7 @@ Documentation:
 import os, sys
 import time
 from mpi4py import MPI
-from agnspec import run_agnspec
+from agnspec import run_agnspec, mdot_from_edd
 import numpy as np
 
 
@@ -39,7 +39,7 @@ my_node = MPI.Get_processor_name()    	# Node where this MPI process runs
 # prepare arrays to run grid over
 FOLDER = "/Users/jmatthews/Documents/runs/QSO_clumped/disk_spec/agnspec_grids/outputs"
 
-spins = [0,0.998]		# spin parameter
+spin = [0,0.998]		# spin parameter
 masses = 10.0 ** np.arange(7.0,10.0,0.2)  # black hole masses
 edd_frac = np.arange(0,1,0.025)			  # eddington fractions
 edd_frac[0] = 0.01
@@ -49,7 +49,7 @@ incs[-1] = 89.0
 
 
 m_list = []
-edd_list = []
+mdot_list = []
 inc_list = []
 spin_list = []
 fnames = []
@@ -82,9 +82,8 @@ for ispin in range(len(spin)):
 
 N_MODELS_TOTAL = len(fnames)		# total number of models to run	
 
-print "Total models %i" N_MODELS_TOTAL
+print "Total models %i" %  N_MODELS_TOTAL
 
-sys.exit()
 
 n_models = N_MODELS_TOTAL / nproc		# number of models for each thread
 
@@ -138,8 +137,6 @@ for i in range( my_nmin, my_nmax):
 		print "SYS: Projected finish = %.2f hours" % ( (1.0*nruns) / float(n) * (t2 - tinit) / n / 3600.0)
 
 
-# close each file
-f.close()
 
 # get the time taken
 time2 = time.time()	

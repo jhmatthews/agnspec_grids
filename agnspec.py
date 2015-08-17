@@ -6,8 +6,6 @@ import py_plot_util as util
 import os, sys 
 from constants import *
 import numpy as np
-import pretty
-from pretty import *
 
 ''' 
 subroutines and functions relating to running agnspec grids
