@@ -1,0 +1,12 @@
+#!/bin/bash
+module load openmpi/1.6.4/intel_of2
+module load idl/8.4
+
+cd /home/jm8g08/scr/agnspec_grids
+mpirun -n 40 python /home/jm8g08/scr/agnspec_grids/para_agnspec_grid.py > agn.out &
+
+wait
+
+
+
+

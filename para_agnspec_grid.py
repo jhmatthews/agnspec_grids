@@ -62,10 +62,11 @@ for ispin in range(len(spin)):
 
 				for ii in range(len(incs)):
 					logm = np.log10(masses[im])
-					if logm - int(logm) < 0.2:
-						m2 = 0
-					else: m2 = 5
 
+                                        m2 = int(10 * (logm - int(logm)) + 0.1)
+
+                                        mbh_string = "%ip%i" % (int(logm), m2)
+                                        print logm, mbh_string
 
 					mbh_string = "%ip%i" % (int(logm), m2)
 					fnames.append("sp%i_inc%2i_mbh%s_edd%itminus3" % (int(spin[ispin]+0.5),incs[ii], mbh_string, edd_frac[iedd]/0.001))
@@ -118,7 +119,7 @@ MPI.COMM_WORLD.Barrier()
 
 # start a timer for each thread
 time_init = time.time()
-
+tinit = time_init
 
 
 # now we can actually do the loop
@@ -132,9 +133,10 @@ for i in range( my_nmin, my_nmax):
 	run_agnspec(fnames[i], mass=m_list[i], mdot=mdot_list[i], inc=inc_list[i], angm=spin_list[i])
 
 	# print statement which keeps track for the 0th thread only
+	t2 = time.time()
 	if my_rank == 0:
-		print "SYS: Run %i of %i complete. Elapsed time %8.4es" % (n, nruns, t2 - tinit)
-		print "SYS: Projected finish = %.2f hours" % ( (1.0*nruns) / float(n) * (t2 - tinit) / n / 3600.0)
+		print "SYS: Run %i of %i complete. Elapsed time %8.4es" % (i, ndo, t2 - tinit)
+	#	print "SYS: Projected finish = %.2f hours" % ( (1.0*ndo) / float(i) * (t2 - tinit) / i / 3600.0)
 
 
 

@@ -42,7 +42,7 @@ def run_agnspec(fname, mass=1e9, mdot=5, angm=0, alpha=0.01, inc=80):
 	param_string = "mass=%8.4e,mdot=%8.4e,angm=%.6f,alpha=%.6f,mu=%8.4e,savename=\"%s\"" % (mass, mdot, angm, alpha, mu, fname)
 
 	print param_string
-	os.system("idl -e 'agnspec/agnspec,%s' > idl.out" % param_string)
+	os.system("idl -e 'agnspec,%s' > idl.out" % param_string)
 
 	return 0
 
@@ -103,10 +103,11 @@ def run_grid(masses, edd_frac, spin, incs, folder):
 
 				for ii in range(len(incs)):
 					logm = np.log10(masses[im])
-					if logm - int(logm) < 0.2:
-						m2 = 0
-					else: m2 = 5
 
+					m2 = int((logm - int(logm)) + 0.05)
+
+					mbh_string = "%ip%i" % (int(logm), m2)
+					print logm, mbh_string
 
 					mbh_string = "%ip%i" % (int(logm), m2)
 					fname = "sp%i_inc%2i_mbh%s_edd%itminus3" % (int(spin[ispin]+0.5),incs[ii], mbh_string, edd_frac[iedd]/0.001)
