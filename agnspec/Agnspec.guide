@@ -1,0 +1,282 @@
+   
+
+AGNSPEC - AN IDL INTERFACE TO COMPUTE INTEGRATED SPECTRA
+          OF AGN ACCRETION DISKS
+
+I. Hubeny, July 2002
+
+
+
+The package can be used to produce integrated spectra of AGNs.
+The philosophy is now different from what we have used in the
+AGN series (Hubeny & Hubeny 1998; Hubeny et al 2000, 2001) -
+instead of computing models for all selected annuli of a disk
+specified by the mass of the black hole, mass accretion rate, 
+spin, and viscosity parameter alpha, we use here pre-calculated
+grid of models that are characterized by the effective temperature, 
+Teff; the total column mass (m), and the Q-parameter (a classical 
+analog of it being Omega_Keppler^2, i.e. the local vertical gravity 
+acceleration is g=Q z, where z is the distance form the central plane).
+
+Computing a spectrum of a given disk consists of several steps: 
+i) setting up corresponding radial distances and basic parameters
+for these annuli (Teff, m, and Q); ii) interpolation of the grid
+spectra to the values of Teff, m , Q to get the individual spectra
+of the annuli; and iii) integrating over radial coordinates,
+taking into account general relativistic effects.
+
+The underlying grid of models contain annuli for Teff between
+10,000 K and 250,000 K, so the package is not yet useful
+for hotter disks, e.g. Seyferts.
+
+The package consists of
+
+- two Fortran-77 programs (dispar3.f, kerrtrans9.f)
+- four IDL routines (agnspec.pro, ringspec,pro, readgrid.pro, plt,pro)
+- one IDL save file that contains the grid of models (agngrid.save)
+- one text file - Guide to AGNSPEC (Agnspec.guide)
+- one postscript file - guide to PLT (pltguid.ps)
+
+
+
+Fortran Programs
+================
+
+The programs can be used as stand-alone routines, in which case the 
+user has to set up the input data. Within the context of AGNSPEC, the
+input data are instead built using simple keyword commands with which
+AGNSPEC is called.
+
+It is recommended that the two Fortran programs reside in a certain
+directory. The user has to first compile both programs as
+Under Unix
+f77 -o dispar3 dispar3.f
+f77 -o kerrtrans9 kerrtrans9.f
+
+under Linux
+
+g77 -fno-automatic -o dispar3 dispar3.f
+g77 -fno-automatic -o kerrtrans9 kerrtrans9.f
+
+If the user prefers to run AGNSPEC in a different directory than
+that where the Fortran executables are located, the name of 
+directory where those executables reside has to be communicated to
+AGNSPEC by means of the keyword parameter DIRPRG (see below).
+
+
+a) program DISPAR3 - for given mass, accretion rate, angular
+momentum, and alpha, computes a distribution of radii, and
+basic parameters for the individual annuli - effective temperature,
+total column mass, and a Q-parameter.
+
+b) Program KERRTRANS9 - a modified version of Eric Agol's program
+kerrtrans, that solves general relativistic transfer function problem,
+and integrates the spectra of the individual annuli to obtain the
+total integrated spectrum for a certain inclination. All the 
+relativistic effects are included.
+
+
+IDL programs
+============
+
+a) READGRID
+-----------
+In the present context, only reads the IDL save file
+to initialize the grid. (Otherwise, it can read the generic models,
+interpolates to the common wavelength scale, and saves them).
+Keyword parameter: 
+NAME - name of the save file.
+       Default: NAME='agngrid.save' (this is the name
+       which is use in the present directory).
+
+All the quantities are transported through common block "model". 
+If the user wants to access the individual
+quantities, it is necessary to issue, after starting the IDL session,
+the commands:
+
+IDL> common model,tl,ml,ql,wls,int,pol,iconv
+IDL> readgrid
+
+which reads the grid, and makes the quantities accessible in the current
+IDL session (without issuing the "common" statement, the quantities
+in the common block would be visible only in the IDL routines).
+
+Meaning of the quantities in the common black model:
+- tl: array of log Teff of the grid
+- ml: array of log m of the grid (m is the total column mass)
+- ql: array of log Q of the grid
+- wls: array of log lambda - the common wavelength scale of the spectra 
+       in the grid. The present grid has 300 wavelength points, ordered
+       by increasing wavelength.
+- int: array of specific intensities; int(it,im,iq,iw,ia), where
+       it is the Teff index, im the m-index, iq the Q-index, 
+       iw the wavelength index, and ia the angle index. There are 10
+       angles, with mu=cos(angle) being the abscissas of a 10-point
+       Gaussian integration between 0 and 1.
+- pol: the same for polarizations. However, the present grid
+       does not consider them (they are set to zero).
+- iconv: key for quality of convergence of a given model (included
+       for completeness; not presently used in AGNSPEC)
+
+
+b) AGNSPEC
+----------
+This is the basic program of the package. It has a number of
+keyword parameters. In most cases, they have an assigned default
+value, so if they are not explicitly set, the default value is adopted.
+The list of keyword parameters with a brief explanation follows:
+
+i) basic physical parameters:
+
+MASS - mass of the black hole (in the solar masses)
+       Default: MASS=1.e9
+MDOT - mass accretion rate (in M_sun/year)
+       Default: MDOT=1
+ANGM - angular momentum of the black hole in geometrized units
+       Default: ANGM=0.998 (i.e. a maximum-rotation Kerr hole)
+ALPHA - Shakura-Sunyaev viscosity parameter alpha
+       Default: ALPHA=0.01
+MU   - cosine of the inclination angle (MU=1 would be a face-on disk)
+       Default: MU=0.6
+
+ii) parameters for setting up annuli:
+
+TMIN - minimum Teff of an annulus which is taken from the grid
+       (all other, cooler, annuli are represented by black-bodies).
+       TMIN should be close to the minimum Teff of the grid, 10,000 K.
+       Default: TMIN=9000
+DELTAR - if set to a non-zero value, the radii are set up equidistant
+       in log R, DELTAR is then delta log R (that is, 
+       log R_{i+1} = log R_i + DELTAR
+       Default: DELTAR=0.1
+RCUT - if set to a non-zero value, it is the cutoff radius of
+       the overall disk
+       Default: RCUT=0. (i.e. the cutoff radius is specified through
+       the limiting Teff - see below)
+TLIM - if set to a non-zero value, the cutoff radius is specified
+       as that at which Teff(R) = TLIM
+       Default: TLIM=1000
+
+iii) parameters for computing the integrated spectrum
+
+FRMIN - minimum frequency for the integrated spectrum in the
+        observer's frame
+        Default: FRMIN=1.e14
+FRMAX - maximum frequency for the integrated spectrum in the
+        observer's frame
+        Default: FRMIN=1.e17
+NFOBS - number of frequencies of the integrated spectrum
+        Default: NFOBS=300
+
+iv) Auxiliary parameters:
+
+NOCOMP - if set, kerrplot is not called; AGNSPEC only recovers
+         spectra of the individual annuli and possibly plots them.
+PLMOD  - if set to a non-zero value the spectra of the individual
+         annuli are plotted
+       = 1 - the individual spectra in the rest frame are plotted
+       = 2 - the individual spectra multiplied by an approximate 
+             corresponding area are plotted - this shows their
+             approximate contribution to the total spectrum
+       = 3 - the cumulative contribution of all annuli up to the
+             given one are plotted
+         The thick line of the top is the sum over all annuli.
+         The line pattern is the IDL keyword line=0,1,2,3,4
+         (i.e., full, dot, dash, dot-dash, dot-dot-dash), and
+         repeatedly 0,1,2,3,4 for all the consecutive annuli.
+PLSPEC - if set, plots the final, integrated spectrum. Otherwise,
+         the spectrum is stored on file "sp.out", and if it is not
+         copied to some other file, it is overwritten in the next
+         run of AGNSPEC.
+         Default: PLSPEC=1 (i.e. an integrated spectrum is plotted;
+         that is obviously only if NOCOMP is not set)
+OPL    - if set then whatever is to be plotted (specified by means
+         of parameters PLMOD and PLSPEC) is an overplot of an
+         existing plot
+RESTORE- if set, the grid of models is restored in AGNSPEC (i.e.,
+         one does not have to call READGRID separately)
+NAME   - if set, together with RESTORE, the filename of the save
+         file with the grid
+         Default: NAME='agngrid.save'
+DIRPRG - the directory at which the Fortran executables dispar3 and
+         kerrtrans89 are stored.
+         Default: DIRPRG='./' (i.e., the current working directory)
+any keyword parameter for IDL routine PLOT is accepted
+         (i.e., for instance xrange=.., yrange=..,, color=...,
+         thick=..., title=..., xtitle=..., etc.)
+
+
+c) Auxiliary programs. There are two, again both can be used
+as stand-alone routines.
+
+RINGSPEC
+========
+Computes the spectrum of one annulus by interpolating in the grid
+Keyword parameters:
+
+TEFF  - log Teff
+DMTOT - log m
+QGRAV - log G
+INT0  - emergent spectrum; INT0(iw,ia), where iw is the wavelength
+        index and ia the angle index.
+
+PLT
+===
+This is an auxiliary, multi-purpose routine for extracting and
+plotting data from a file. Since it is a general routine, it
+is accompanied by its own User's guide - file pltguid.ps
+
+
+
+
+Examples
+========
+
+To compute a spectrum for a Kerr black hole disk with mass=1.e9,
+mdot=1, alpha=0.01, and mu=0.6 (i.e. all default values in
+AGNSPEC), issue a simple command
+
+IDL> agnspec
+
+to see the contribution of the individual annuli, issue
+
+IDL> agnspec,/nocomp,plmod=1   ;[or plmod=2 or 3]
+
+(as you will see, it is better to run is as
+IDL> agnspec,/nocomp,plmod=1,yr=[1.e-5,1.]
+
+To plot the usual quantity nu*L_nu for this model (in units of
+1.e45 erg/s)
+
+IDL> plt,'sp.out',nc=5,/nopl,f,l     ; only extracts the quantities
+IDL> plot_oo,f,l*1.d-30*f*1.d-15
+
+To see again the integrated spectrum of the previous disk
+
+IDL> plt,'sp.out',nc=5,/xlog,/ylog,yr=[1.e29,1.e31]
+
+To overplot the spectrum with another one for Schwarszschild disk
+with alpha=0.1, and with mdot=2, issue
+
+IDL> agnspec,mdot=2,angm=0,alpha=0.1,/opl,line=2
+
+and with spin 0.5 and mdot=5
+
+IDL> agnspec,mdot=5,angm=0.5,alpha=0.1,/opl,line=3
+
+To overplot a spectrum for the Schwarzschild disk but with inclination
+mu = cos i = 0.8
+
+IDL> agnspec,mdot=5,angm=0,alpha=0.1,mu=0.8,/opl
+
+
+
+
+
+
+
+
+
+
+
+
